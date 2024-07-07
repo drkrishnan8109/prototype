@@ -64,11 +64,7 @@ public class ConsistentHashing {
 
     /*
     * Cache failures and Hotshards needs to be handled
-    * Hotshard: Here I chose manual splitting of shard that is hot - Find such shards with KPIs for load & alert
-    * Cache failure: Failure KPIs should give us the index of failed shard
     * Not using the virtual node approach here, rather going for manual to prototype
-    * For hotshards breakIndex is the index of hot shard
-    * For cache failure breakIndex is Index of next available cache
      * */
     public void addMoreCache(int newIndex) {
         //Decide manually which the index in ring should the cache be added & manually move array to make space for new node
