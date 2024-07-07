@@ -1,7 +1,5 @@
 package org.random;
 
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 
 /*
@@ -14,77 +12,86 @@ import java.util.HashMap;
 * */
 public class ConsistentHashing {
 
-    int n = 2;
-    ArrayList<HashMap<String,String>> hashring = new ArrayList<>();
+    static int n = 10; //hard code for prototype
+    HashMap<String,String>[] hashring = new HashMap[10];
 
-    void addCacheToRingDefault(HashMap<String,String> cache1, HashMap<String,String> cache2) {
-        //Add initial x number of nodes
-        //hash based decision
-        int index1 = hash(cache1);
-        int index2 = hash(cache2);
-        //Add the caches based on sorted hash into the ring array
-        if(index1<index2) {
-            hashring.set(0, cache1);
-            hashring.set(1, cache2);
-        }
-        else {
-            hashring.set(0, cache2);
-            hashring.set(1, cache1);
-        }
+    /*
+    * Add initial x number of nodes
+    * with constant n
+    * */
+    public void assignCacheToRingDefault(HashMap<String,String> cache1, HashMap<String,String> cache2) {
+        int index1 = 4;
+        int index2 = 8;
+        System.out.println("Adding cache at cache index " + index1);
+        hashring[index1] = cache1;
+        System.out.println("Adding cache at cache index " + index2);
+        hashring[index2] = cache2;
     }
 
-    void addKey(String key) {
+    /*
+    * If success, return key, else returns null
+    * */
+    public String put(String key, String value) {
         //find cache index
-        int index = hash(key);
-        //Find valid index - if cache went down, find next cache
-        while(hashring.get(index) ==null) {
-            index = index++ >= n ? 0 : index;
+        int index = Integer.parseInt(key)%n;
+        int limit=0;
+        //Find valid index where cache is present
+        index = index >= n ? 0 : index;
+        while(hashring[index] ==null) {
+            index = ++index >= n ? 0 : index; //Infinite loop if all caches down. Need to handle such edge cases - Set alerts
+            limit++; if(limit>n) return null; // To prevent infinite loop and to inform caller that add failed
         }
-        HashMap cache = hashring.get(index); // Key will be added to this cache
-        cache.put(key,"blabla"); //Ofcourse just a prototype!
+        System.out.println("Putting key" + key +":"+ index);
+        HashMap cache = hashring[index]; // Key will be added to this cache
+        cache.put(key,value); //Ofcourse just a prototype!
+        return key;
     }
 
-    public String getKey(String key) {
-        int index = hash(key);
+    public String get(String key) {
+        int index = Integer.parseInt(key)%n;
         //Find valid index - if cache went down, find next cache
         int limit = 0;
-        while(hashring.get(index) ==null) {
-            index = index++ >= n ? 0 : index;
+        index = index >= n ? 0 : index;
+        while(hashring[index] ==null) {
+            index = ++index >= n ? 0 : index;
             limit++; if(limit>n) return null; // To prevent infinite loop
         }
-        HashMap cache = hashring.get(index);
+        System.out.println("Getting key" + key +":"+ index);
+        HashMap cache = hashring[index];
         return (String) cache.get(key);
     }
 
-    void addMoreCacheForHotShard(int breakindex) {
+    /*
+    * Cache failures and Hotshards needs to be handled
+    * Hotshard: Here I chose manual splitting of shard that is hot - Find such shards with KPIs for load & alert
+    * Cache failure: Failure KPIs should give us the index of failed shard
+    * Not using the virtual node approach here, rather going for manual to prototype
+    * For hotshards breakIndex is the index of hot shard
+    * For cache failure breakIndex is Index of next available cache
+     * */
+    public void addMoreCache(int newIndex) {
         //Decide manually which the index in ring should the cache be added & manually move array to make space for new node
         //Load with snapshot of hot shard
-        HashMap<String,String> newCache = (HashMap<String, String>) hashring.get(breakindex).clone();
-        int newIndex = hash(newCache);
-        if(hashring.get(newIndex)!=null) {
-            //Insert to array index
-            hashring.add(newIndex, newCache);
+        int nextValidCacheIndex = newIndex + 1;
+        while(hashring[nextValidCacheIndex] ==null) {
+            nextValidCacheIndex = ++nextValidCacheIndex >= n ? 0 : nextValidCacheIndex;
         }
-        else {
-            // Set to array index
-            hashring.set(newIndex,newCache);
-            //Later delete unwanted keys to correct the key range
+        HashMap<String, String> newCache = (HashMap<String, String>)  hashring[nextValidCacheIndex].clone();
+        // Insert new cache to array at the given index
+        System.out.println("Adding more cache at index "+ newIndex);
+        hashring[newIndex] = newCache; //Right now newcache and cloned cache both has same data
+        //Later rebalance keys to correct the key range
+        int prevValidCacheIndex = newIndex;
+        while(hashring[prevValidCacheIndex] ==null) {
+            prevValidCacheIndex = --prevValidCacheIndex < 0 ? n : prevValidCacheIndex;
+        }
+        rebalanceKeys(prevValidCacheIndex, nextValidCacheIndex, newIndex);
         }
 
+    public void rebalanceKeys(int prevValidCacheIndex, int nextValidCacheIndex, int currIndex) {
+        //Iterate through cache at prevValidCacheIndex and assign keys in range [prevValidCacheIndex,currIndex] to cache at currIndex
+        //Iterate through cache at nextValidCacheIndex and assign keys in range [currIndex,nextValidCacheIndex] to cache at currIndex
+        //Also delete those keys from the old cache
+        //Ignore concurrency for now
     }
-
-    int hash(String key) {
-        int k=0;
-        for (int i=0; i<key.length();i++) {
-            k+=key.charAt(i);
-        }
-        return k%n;
-    }
-
-    int hash(HashMap cache) {
-        int k=0;
-        String bla = cache.toString(); // Just a naiveway to understand logic, dont iterate like this is real world!
-        return hash(bla);
-    }
-
 }
