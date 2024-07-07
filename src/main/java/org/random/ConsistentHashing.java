@@ -1,9 +1,6 @@
 package org.random;
 
-import org.w3c.dom.ranges.Range;
-
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
 
 /*
@@ -111,8 +108,17 @@ public class ConsistentHashing {
     * Assuming cache at failIndex goes down.
     * Either all data is lost if the cache was only memory, in that case the cache is eventually rebuilt by disk reads
     * Or we had snapshots or WAL and we copy all the data to next shard, if the shard is overwhelmed, split it using addMoreCache()
+    * Here mocking the failure and storing data from a clone to mock the scenario
     * */
     public void gracefullyFailCache(int failIndex) {
+        //Clone acts as the snapshot for prototype and can be loaded to the next valid cache
+        HashMap<Integer, Integer> clone = (HashMap<Integer, Integer>)  hashring[failIndex].clone();
+        hashring[failIndex] = null;
 
+        int nextValidCacheIndex = failIndex + 1;
+        while(hashring[nextValidCacheIndex] ==null) {
+            nextValidCacheIndex = ++nextValidCacheIndex >= n ? 0 : nextValidCacheIndex; //edge cases ignored
+        }
+        hashring[nextValidCacheIndex].putAll(clone);
     }
 }
