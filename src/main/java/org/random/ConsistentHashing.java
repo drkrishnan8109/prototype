@@ -85,13 +85,22 @@ public class ConsistentHashing {
         while(hashring[prevValidCacheIndex] ==null) {
             prevValidCacheIndex = --prevValidCacheIndex < 0 ? n : prevValidCacheIndex;
         }
-        rebalanceKeys(prevValidCacheIndex, nextValidCacheIndex, newIndex);
+        rebalanceKeysonNewCache(prevValidCacheIndex, nextValidCacheIndex, newIndex);
         }
 
-    public void rebalanceKeys(int prevValidCacheIndex, int nextValidCacheIndex, int currIndex) {
+    public void rebalanceKeysonNewCache(int prevValidCacheIndex, int nextValidCacheIndex, int currIndex) {
         //Iterate through cache at prevValidCacheIndex and assign keys in range [prevValidCacheIndex,currIndex] to cache at currIndex
         //Iterate through cache at nextValidCacheIndex and assign keys in range [currIndex,nextValidCacheIndex] to cache at currIndex
         //Also delete those keys from the old cache
         //Ignore concurrency for now
+    }
+
+    /*
+    * Assuming cache at failIndex goes down.
+    * Either all data is lost if the cache was only memory, in that case the cache is eventually rebuilt by disk reads
+    * Or we had snapshots or WAL and we copy all the data to next shard, if the shard is overwhelmed, split it using addMoreCache()
+    * */
+    public void gracefullyFailCache(int failIndex) {
+
     }
 }
