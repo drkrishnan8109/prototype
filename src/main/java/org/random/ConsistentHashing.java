@@ -1,6 +1,10 @@
 package org.random;
 
+import org.w3c.dom.ranges.Range;
+
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
 
 /*
 * Logic is that we have constant size array for holding the Caches or Nodes.
@@ -13,13 +17,13 @@ import java.util.HashMap;
 public class ConsistentHashing {
 
     static int n = 10; //hard code for prototype
-    HashMap<String,String>[] hashring = new HashMap[10];
+    HashMap<Integer,Integer>[] hashring = new HashMap[10];
 
     /*
     * Add initial x number of nodes
     * with constant n
     * */
-    public void assignCacheToRingDefault(HashMap<String,String> cache1, HashMap<String,String> cache2) {
+    public void assignCacheToRingDefault(HashMap<Integer,Integer> cache1, HashMap<Integer,Integer> cache2) {
         int index1 = 4;
         int index2 = 8;
         System.out.println("Adding cache at cache index " + index1);
@@ -31,9 +35,9 @@ public class ConsistentHashing {
     /*
     * If success, return key, else returns null
     * */
-    public String put(String key, String value) {
+    public Integer put(Integer key, Integer value) {
         //find cache index
-        int index = Integer.parseInt(key)%n;
+        int index =key%n;
         int limit=0;
         //Find valid index where cache is present
         index = index >= n ? 0 : index;
@@ -47,8 +51,8 @@ public class ConsistentHashing {
         return key;
     }
 
-    public String get(String key) {
-        int index = Integer.parseInt(key)%n;
+    public Integer get(Integer key) {
+        int index = key%n;
         //Find valid index - if cache went down, find next cache
         int limit = 0;
         index = index >= n ? 0 : index;
@@ -58,7 +62,7 @@ public class ConsistentHashing {
         }
         System.out.println("Getting key" + key +":"+ index);
         HashMap cache = hashring[index];
-        return (String) cache.get(key);
+        return (Integer) cache.get(key);
     }
 
     /*
@@ -76,7 +80,7 @@ public class ConsistentHashing {
         while(hashring[nextValidCacheIndex] ==null) {
             nextValidCacheIndex = ++nextValidCacheIndex >= n ? 0 : nextValidCacheIndex;
         }
-        HashMap<String, String> newCache = (HashMap<String, String>)  hashring[nextValidCacheIndex].clone();
+        HashMap<Integer, Integer> newCache = (HashMap<Integer, Integer>)  hashring[nextValidCacheIndex].clone();
         // Insert new cache to array at the given index
         System.out.println("Adding more cache at index "+ newIndex);
         hashring[newIndex] = newCache; //Right now newcache and cloned cache both has same data
@@ -89,10 +93,18 @@ public class ConsistentHashing {
         }
 
     public void rebalanceKeysonNewCache(int prevValidCacheIndex, int nextValidCacheIndex, int currIndex) {
-        //Iterate through cache at prevValidCacheIndex and assign keys in range [prevValidCacheIndex,currIndex] to cache at currIndex
-        //Iterate through cache at nextValidCacheIndex and assign keys in range [currIndex,nextValidCacheIndex] to cache at currIndex
-        //Also delete those keys from the old cache
         //Ignore concurrency for now
+        HashMap<Integer,Integer> nextCache = hashring[nextValidCacheIndex];
+        HashMap<Integer,Integer> currCache = hashring[currIndex];
+
+        // Assign keys in range [prevValidCacheIndex,currIndex] to cache at currIndex
+        // and remove those keys from cache at nextValidCacheIndex
+        for(Map.Entry<Integer,Integer> entry: nextCache.entrySet()) {
+            if( entry.getKey()>prevValidCacheIndex && entry.getKey()<=currIndex ) {
+                currCache.put(entry.getKey(),entry.getValue());
+                nextCache.remove(entry.getKey());
+            }
+        }
     }
 
     /*
